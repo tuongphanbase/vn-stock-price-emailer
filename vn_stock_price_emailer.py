@@ -1116,21 +1116,18 @@ def format_email_body(prices, indices, used_source, previous_prices):
 
 # --- Formatting: HTML -----------------------------------------------------------
 
-_GREEN = "#16a34a"
-_GREEN_BG = "#ecfdf3"
-_RED = "#dc2626"
-_RED_BG = "#fef2f2"
-_GRAY = "#6b7280"
-_GRAY_BG = "#f3f4f6"
-_NAVY = "#0f172a"
-_BORDER = "#e5e7eb"
-# Deep indigo, used for brand elements only (header background, exchange
-# badges) - a best-effort visual match to rework.com's product screenshots
-# (Sales Operations/Projects/Connect/Flow feature pages), not an extracted
-# exact value - thumbnail images don't allow reliable hex-level color
-# picking. _NAVY stays as the near-black text color for ticker symbols/
-# prices, since that's a readability choice independent of brand color.
-_ACCENT = "#312e81"
+_GREEN = "#1A7F4B"
+_GREEN_BG = "#E5F3EB"
+_RED = "#C6362B"
+_RED_BG = "#FBE9E7"
+_GRAY = "#596170"
+_GRAY_BG = "#F1F2F4"
+_NAVY = "#1D2129"
+_BORDER = "#E2E4E8"
+# Accent shared by every bot and the dashboard (Rework's blue, as noted from
+# their product screenshots). Used only for the exchange tags; text stays _NAVY
+# and the green/red gain-loss colours encode data, not brand.
+_ACCENT = "#3B5BDB"
 
 
 def _pct_style(pct):
@@ -1187,19 +1184,9 @@ def format_email_html(prices, indices, used_source, previous_prices):
     flatter and denser than a marketing page, which is what these are
     meant to reflect.
 
-    Color (_ACCENT, a deep indigo #312e81) and font (Inter, loaded via a
-    Google Fonts <link> that degrades gracefully to the existing system-
-    font stack in clients that strip it, e.g. Gmail) were added on a later
-    request to also match rework.com. These carry meaningfully LESS
-    confidence than the layout observations above: thumbnail images don't
-    allow reliable hex-level color picking or font-name identification,
-    so _ACCENT is a best-effort visual impression (a blue-purple/indigo
-    read consistently across four feature-page screenshots), not an
-    extracted exact value. _ACCENT is applied only to brand elements
-    (header background, exchange badges) - _NAVY (near-black) stays as
-    the body/price text color regardless of brand color, since that's a
-    readability choice, and the green/red gain-loss colors are
-    deliberately untouched, since those encode data (up/down), not brand.
+    Colours and fonts follow the palette shared by every bot and the
+    dashboard: neutral surfaces, system fonts, the blue accent only on the
+    exchange tags, and green/red kept for the data (up/down).
 
     Collapsible sections via <details>/<summary> were tried here at one
     point (no JavaScript needed, since email clients strip scripts
@@ -1208,8 +1195,8 @@ def format_email_html(prices, indices, used_source, previous_prices):
     triangle rendered. Reverted back to plain, non-interactive headers
     rather than leave dead "looks clickable but isn't" markup in place.
     """
-    CARD_RADIUS = "10px"
-    CARD_PADDING = "20px"
+    CARD_RADIUS = "8px"
+    CARD_PADDING = "16px 18px"
     GAP = "12px"
 
     def _card(inner_html, bg="#ffffff", border=True, padding=CARD_PADDING):
@@ -1225,12 +1212,12 @@ def format_email_html(prices, indices, used_source, previous_prices):
 
     cards = []  # each entry is a full <tr><td>...card...</td></tr> row
 
-    # --- Header card ---
+    # --- Title (plain text on the page background) ---
     header_inner = (
-        f'<div style="color:#ffffff;font-size:20px;font-weight:700;">Danh Mục Cổ Phiếu Việt Nam</div>'
-        f'<div style="color:#c7d2fe;font-size:13px;margin-top:4px;">{format_vn_datetime(now_vn())} (Giờ Việt Nam)</div>'
+        f'<div style="color:{_NAVY};font-size:20px;font-weight:600;line-height:1.3;">Danh mục cổ phiếu Việt Nam</div>'
+        f'<div style="color:{_GRAY};font-size:13px;margin-top:2px;">{format_vn_datetime(now_vn())} (giờ Việt Nam)</div>'
     )
-    cards.append(_card_row(_card(header_inner, bg=_ACCENT, border=False, padding="24px 28px")))
+    cards.append(_card_row(_card(header_inner, bg="transparent", border=False, padding="0 2px")))
 
     # --- Market indices card ---
     all_index_labels = [label for _code, label in INDICES]
@@ -1241,7 +1228,7 @@ def format_email_html(prices, indices, used_source, previous_prices):
             if not vals:
                 cells.append(f"""\
 <td width="33%" style="padding:14px 10px;text-align:center;border-right:1px solid {_BORDER};">
-  <div style="font-size:12px;color:{_GRAY};font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">{_html_escape(label)}</div>
+  <div style="font-size:12px;color:{_GRAY};">{_html_escape(label)}</div>
   <div style="font-size:12px;color:{_GRAY};margin-top:8px;">không có dữ liệu lần này</div>
 </td>""")
                 continue
@@ -1250,14 +1237,14 @@ def format_email_html(prices, indices, used_source, previous_prices):
             change_text = f"{arrow} {pct:+.2f}%" if pct is not None else "\u2013"
             cells.append(f"""\
 <td width="33%" style="padding:14px 10px;text-align:center;border-right:1px solid {_BORDER};">
-  <div style="font-size:12px;color:{_GRAY};font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">{_html_escape(label)}</div>
-  <div style="font-size:19px;font-weight:700;color:{_NAVY};margin-top:4px;">{vals['close']:,.2f}</div>
+  <div style="font-size:12px;color:{_GRAY};">{_html_escape(label)}</div>
+  <div style="font-size:18px;font-weight:600;color:{_NAVY};margin-top:2px;">{vals['close']:,.2f}</div>
   <div style="font-size:13px;font-weight:600;color:{color};margin-top:2px;">{change_text}</div>
 </td>""")
         if cells:
             cells[-1] = cells[-1].replace(f"border-right:1px solid {_BORDER};", "")
         indices_inner = (
-            f'<div style="font-size:13px;font-weight:700;color:{_NAVY};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:12px;">Chỉ Số Thị Trường</div>'
+            f'<div style="font-size:15px;font-weight:600;color:{_NAVY};margin-bottom:10px;">Chỉ số thị trường</div>'
             f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid {_BORDER};border-radius:8px;"><tr>{"".join(cells)}</tr></table>'
         )
         cards.append(_card_row(_card(indices_inner)))
@@ -1276,16 +1263,16 @@ def format_email_html(prices, indices, used_source, previous_prices):
         rows = []
         if gainers:
             rows.append(
-                f'<div style="margin-bottom:6px;"><span style="font-size:12px;color:{_GRAY};font-weight:600;">TĂNG GIÁ&nbsp;</span>'
+                f'<div style="margin-bottom:6px;"><span style="font-size:12px;color:{_GRAY};font-weight:600;">Tăng giá&nbsp;</span>'
                 + "".join(_chip(t, p) for t, p in gainers) + "</div>"
             )
         if losers:
             rows.append(
-                f'<div><span style="font-size:12px;color:{_GRAY};font-weight:600;">GIẢM GIÁ&nbsp;</span>'
+                f'<div><span style="font-size:12px;color:{_GRAY};font-weight:600;">Giảm giá&nbsp;</span>'
                 + "".join(_chip(t, p) for t, p in losers) + "</div>"
             )
         movers_inner = (
-            f'<div style="font-size:13px;font-weight:700;color:{_NAVY};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:12px;">Biến Động Nổi Bật</div>'
+            f'<div style="font-size:15px;font-weight:600;color:{_NAVY};margin-bottom:10px;">Biến động nổi bật</div>'
             f'{"".join(rows)}'
         )
         cards.append(_card_row(_card(movers_inner)))
@@ -1296,12 +1283,12 @@ def format_email_html(prices, indices, used_source, previous_prices):
         row_html = []
         for i, ticker in enumerate(tickers):
             vals = prices.get(ticker)
-            stripe = "#ffffff" if i % 2 == 0 else "#f8fafc"
+            stripe = "#ffffff"  # rows are separated by borders, not zebra stripes
             if not vals:
                 row_html.append(f"""\
 <tr style="background:{stripe};">
-  <td style="padding:8px 12px;font-weight:700;color:{_NAVY};">{_html_escape(ticker)}</td>
-  <td colspan="5" style="padding:8px 12px;color:{_GRAY};font-size:13px;">không có dữ liệu lần này</td>
+  <td style="padding:8px 12px;font-weight:600;color:{_NAVY};border-top:1px solid {_BORDER};">{_html_escape(ticker)}</td>
+  <td colspan="5" style="padding:8px 12px;color:{_GRAY};font-size:13px;border-top:1px solid {_BORDER};">không có dữ liệu lần này</td>
 </tr>""")
                 continue
             pct = _pct_change(vals)
@@ -1315,29 +1302,29 @@ def format_email_html(prices, indices, used_source, previous_prices):
                 spark_html = f'<span style="color:{_GRAY};font-size:18px;">\u2013</span>'
             row_html.append(f"""\
 <tr style="background:{stripe};">
-  <td style="padding:8px 12px;font-weight:700;color:{_NAVY};">{_html_escape(ticker)}</td>
-  <td style="padding:8px 12px;text-align:right;font-variant-numeric:tabular-nums;color:{_NAVY};">{vals['close']:,.0f}</td>
-  <td style="padding:8px 12px;text-align:center;">{_change_badge(pct)}</td>
-  <td style="padding:8px 12px;text-align:right;color:{_GRAY};font-size:13px;font-variant-numeric:tabular-nums;">{vals.get('volume', 0):,.0f}</td>
-  <td style="padding:8px 12px;text-align:right;color:{_GRAY};font-size:11px;">{_html_escape(source)}</td>
-  <td style="padding:8px 12px;text-align:center;">{spark_html}</td>
+  <td style="padding:8px 12px;font-weight:600;color:{_NAVY};border-top:1px solid {_BORDER};">{_html_escape(ticker)}</td>
+  <td style="padding:8px 12px;text-align:right;font-variant-numeric:tabular-nums;color:{_NAVY};border-top:1px solid {_BORDER};">{vals['close']:,.0f}</td>
+  <td style="padding:8px 12px;text-align:center;border-top:1px solid {_BORDER};">{_change_badge(pct)}</td>
+  <td style="padding:8px 12px;text-align:right;color:{_GRAY};font-size:13px;font-variant-numeric:tabular-nums;border-top:1px solid {_BORDER};">{vals.get('volume', 0):,.0f}</td>
+  <td style="padding:8px 12px;text-align:right;color:{_GRAY};font-size:12px;border-top:1px solid {_BORDER};">{_html_escape(source)}</td>
+  <td style="padding:8px 12px;text-align:center;border-top:1px solid {_BORDER};">{spark_html}</td>
 </tr>""")
 
         exchange_table = f"""\
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid {_BORDER};border-radius:8px;overflow:hidden;font-size:14px;">
-  <tr style="background:#f8fafc;">
-    <th width="10%" align="left" style="padding:8px 12px;font-size:11px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.04em;">Mã CK</th>
-    <th width="17%" align="right" style="padding:8px 12px;font-size:11px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.04em;">Giá đóng cửa (VNĐ)</th>
-    <th width="15%" align="center" style="padding:8px 12px;font-size:11px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.04em;">Thay đổi</th>
-    <th width="15%" align="right" style="padding:8px 12px;font-size:11px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.04em;">Khối lượng</th>
-    <th width="13%" align="right" style="padding:8px 12px;font-size:11px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.04em;">Nguồn</th>
-    <th width="30%" align="center" style="padding:8px 12px;font-size:11px;color:{_GRAY};text-transform:uppercase;letter-spacing:0.04em;">Xu Hướng</th>
+  <tr style="background:#F7F8FA;">
+    <th width="10%" align="left" style="padding:8px 12px;font-size:12px;font-weight:600;color:{_GRAY};">Mã CK</th>
+    <th width="17%" align="right" style="padding:8px 12px;font-size:12px;font-weight:600;color:{_GRAY};">Giá đóng cửa (VNĐ)</th>
+    <th width="15%" align="center" style="padding:8px 12px;font-size:12px;font-weight:600;color:{_GRAY};">Thay đổi</th>
+    <th width="15%" align="right" style="padding:8px 12px;font-size:12px;font-weight:600;color:{_GRAY};">Khối lượng</th>
+    <th width="13%" align="right" style="padding:8px 12px;font-size:12px;font-weight:600;color:{_GRAY};">Nguồn</th>
+    <th width="30%" align="center" style="padding:8px 12px;font-size:12px;font-weight:600;color:{_GRAY};">Xu hướng</th>
   </tr>
   {''.join(row_html)}
 </table>"""
         exchange_inner = (
             f'<div style="margin-bottom:12px;">'
-            f'<span style="display:inline-block;padding:2px 9px;border-radius:5px;background:{_ACCENT};color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.04em;">{exch}</span>'
+            f'<span style="display:inline-block;padding:1px 9px;border-radius:999px;background:#EDF0FC;color:{_ACCENT};font-size:12px;font-weight:600;">{exch}</span>'
             f'<span style="font-size:12px;color:{_GRAY};margin-left:6px;">{len(tickers)} mã</span>'
             f'</div>{exchange_table}'
         )
@@ -1355,7 +1342,7 @@ def format_email_html(prices, indices, used_source, previous_prices):
                 f'<span style="color:{color};font-weight:600;">{arrow} {pct:+.2f}% trong tuần qua</span></div>'
             )
         trend_inner = (
-            f'<div style="font-size:13px;font-weight:700;color:{_NAVY};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:12px;">Xu Hướng Tuần (Thay Đổi 7 Ngày)</div>'
+            f'<div style="font-size:15px;font-weight:600;color:{_NAVY};margin-bottom:10px;">Xu hướng tuần (thay đổi 7 ngày)</div>'
             f'{"".join(trend_rows)}'
         )
         cards.append(_card_row(_card(trend_inner)))
@@ -1365,7 +1352,7 @@ def format_email_html(prices, indices, used_source, previous_prices):
     sources_line = f"Nguồn dữ liệu lần này: {_html_escape(', '.join(sources_used))}" if sources_used else ""
     footer_html = f"""\
 <tr><td style="padding:8px 12px 0 12px;">
-  <div style="font-size:11px;color:#9ca3af;line-height:1.5;">
+  <div style="font-size:12px;color:#6E7581;line-height:1.6;">
     {sources_line}<br>
     Đây là các nguồn dữ liệu công khai từ ứng dụng của từng nhà cung cấp, không phải API
     chính thức/được đảm bảo. Vui lòng kiểm tra lại với công ty chứng khoán của bạn trước
@@ -1378,10 +1365,9 @@ def format_email_html(prices, indices, used_source, previous_prices):
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 0;">
+<body style="margin:0;padding:0;background:#F4F5F7;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif;color:#1D2129;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F5F7;padding:24px 0;">
 <tr><td align="center">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0">
 {''.join(cards)}
@@ -1405,7 +1391,7 @@ def send_email(text_body, html_body=None):
     else:
         msg = MIMEText(text_body, "plain", "utf-8")
 
-    msg["Subject"] = f"Bảng Giá Cổ Phiếu Việt Nam - {now_vn().strftime('%Y-%m-%d %H:%M')}"
+    msg["Subject"] = f"Bảng giá cổ phiếu Việt Nam - {now_vn().strftime('%Y-%m-%d %H:%M')}"
     msg["From"] = GMAIL_ADDRESS
     msg["To"] = STOCK_RECIPIENT
 
